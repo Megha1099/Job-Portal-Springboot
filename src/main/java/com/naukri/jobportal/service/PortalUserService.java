@@ -13,6 +13,8 @@ import com.naukri.jobportal.dto.PortalUser;
 import com.naukri.jobportal.helper.AES;
 import com.naukri.jobportal.helper.EmailSendingHelper;
 
+import jakarta.servlet.http.HttpSession;
+
 @Service
 public class PortalUserService {
 	@Autowired
@@ -75,6 +77,60 @@ public String submitOtp(int otp, int id, ModelMap map) {
 		map.put("msg", "Incorrect Otp! Try Again");
 		map.put("id", portalUser.getId());
 		return "enter-otp.html";
+	}
+}
+
+public String resendOtp(int id, ModelMap map) {
+	PortalUser portalUser=userDao.findUserById(id);
+	userDao.deleteIfExists(portalUser.getEmail());
+	int otp = new Random().nextInt(100000, 999999);
+	System.out.println("Otp ReGenerated - "+otp);
+	portalUser.setOtp(otp);
+	userDao.saveUser(portalUser);
+	System.out.println("Data is Saved in db");
+	emailHelper.sendOtp(portalUser);
+	System.out.println("Otp is Sent to Email "+portalUser.getEmail());
+	map.put("msg", "Otp Sent again check");
+	map.put("id", portalUser.getId());
+	System.out.println("Control- enter-otp.html");
+	return "enter-otp.html";
+}
+
+public String login(String emph, String password, ModelMap map, HttpSession session) {
+	PortalUser portalUser=null;
+	try {
+		long mobile=Long.parseLong(emph);
+	  portalUser=userDao.findUserByMobile(mobile);
+	}
+	catch(NumberFormatException e){
+		String email=emph;
+		 portalUser=userDao.findUserByemail(email);
+		
+	}
+	if(portalUser==null)
+	{
+		map.put("msg", "Invalid email or phone number");
+		return "login.html";
+
+	}
+	else {
+		if (password.equals(AES.decrypt(portalUser.getPassword(), "123"))) {
+			if (portalUser.isVerified()) {
+				map.put("msg", "Login Success");
+				session.setAttribute("portalUser", portalUser);
+				if (portalUser.getRole().equals("applicant")) {
+					return "applicant-home.html";
+				} else {
+					return "recruiter-home.html";
+				}
+			} else {
+				map.put("msg", "First Verify Your Email");
+				return "login.html";
+			}
+		} else {
+			map.put("msg", "Invalid Password");
+			return "login.html";
+		}
 	}
 }
 

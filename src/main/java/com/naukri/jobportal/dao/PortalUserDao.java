@@ -24,8 +24,17 @@ public class PortalUserDao {
 	}
 
 	public void deleteIfExists(String email) {
+			
+	}
+
+	public PortalUser findUserByMobile(long mobile) {
 		
+		return userRepository.findByMobile(mobile);
+	}
+
+	public PortalUser findUserByemail(String email) {
 		
+		return userRepository.findByEmail(email);
 	}
 
 }

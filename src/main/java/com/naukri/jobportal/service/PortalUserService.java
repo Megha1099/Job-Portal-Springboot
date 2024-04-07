@@ -130,8 +130,9 @@ public String login(String emph, String password, ModelMap map, HttpSession sess
 		} else {
 			map.put("msg", "Invalid Password");
 			return "login.html";
+		}	
 		}
-	}
 }
+
 
 }

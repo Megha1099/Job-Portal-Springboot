@@ -15,4 +15,6 @@ public interface PortalUserRepository extends JpaRepository <PortalUser,Integer>
 
 	PortalUser findByEmail(String email);
 
+	boolean existsByMobile(long mobile);
+
 }

@@ -41,6 +41,11 @@ public class PortalUserService {
 		result.rejectValue("email", "error.email", "* Email Should be unique");
 		System.out.println("Error - Email is Repeated");
 	}
+	if(userDao.existsByMobile(portalUser.getMobile()))
+	{
+		result.rejectValue("mobile", "error.mobile","* mobile number should be unique");
+		System.out.println("Error - mobile number is Repeated");
+	}
 	if (result.hasErrors()) {
 		System.out.println("Error - There is Some Error");
 		return "signup.html";

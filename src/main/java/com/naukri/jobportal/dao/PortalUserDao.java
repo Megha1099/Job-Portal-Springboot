@@ -37,4 +37,8 @@ public class PortalUserDao {
 		return userRepository.findByEmail(email);
 	}
 
+	public boolean existsByMobile(long mobile) {
+		return userRepository.existsByMobile(mobile);
+	}
+
 }

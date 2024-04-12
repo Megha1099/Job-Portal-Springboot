@@ -2,19 +2,25 @@
 <html>
 <head>
 <meta charset="ISO-8859-1">
-<title>Insert title here</title>
+<title>Home-Applicant</title>
 </head>
 <body>
-<h1>applicant</h1>
-<h1 th:text="${msg}"></h1>
-<div>
-    
-    <button>Complete profile</button>
-    <button>view Job</button>
-    <button>View Applied job</button>
-    <button>Logout</button><br>
-    <a href="home.html"><Button>Logout</Button></a>
-</div>
-
+	<h1 th:text="${msg}"></h1>
+	<h1>Applicant Home</h1>
+	<br>
+	<th:block th:if="${!session.portalUser.profileComplete}">
+	<a href="/applicant/complete-profile"><button>Complete Your Profile</button></a>
+	</th:block>
+	<br>
+	<Br>
+	<button>View All Jobs</button>
+	<br>
+	<Br>
+	<button>View Applied Jobs</button>
+	<br>
+	<Br>
+	<a href="/logout"><button>Logout</button></a>
+	<br>
+	<Br>
 </body>
 </html>

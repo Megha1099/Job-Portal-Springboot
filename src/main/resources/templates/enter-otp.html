@@ -5,7 +5,7 @@
 <title>Enter Otp</title>
 </head>
 <body>
-<h1 th:text="${msg}"></h1>
+<th:insert ="fragments/message.html"></th:insert>
 <form action="/submit-otp" method="post">
 Enter Otp:<input type="number" name="otp">
 <input type="hidden" name="id" th:value="${id}"> 

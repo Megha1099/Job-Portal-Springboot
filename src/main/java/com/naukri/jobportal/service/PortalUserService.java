@@ -14,6 +14,7 @@ import com.naukri.jobportal.helper.AES;
 import com.naukri.jobportal.helper.EmailSendingHelper;
 
 import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
 
 @Service
 public class PortalUserService {
@@ -23,7 +24,7 @@ public class PortalUserService {
 	@Autowired
 	EmailSendingHelper emailHelper;
 
-	public String signup(PortalUser portalUser, BindingResult result, ModelMap map) {
+	public String signup(PortalUser portalUser, BindingResult result, HttpSession session) {
 	if(portalUser.getDob()==null) {
 		result.rejectValue("dob", "error.dob", "* Select a Date");
 		System.out.println("Error - Age is Not Selected");
@@ -53,8 +54,7 @@ public class PortalUserService {
 	else {
 		System.out.println("No Errors");
 		userDao.deleteIfExists(portalUser.getEmail());
-		int otp = new Random().nextInt(100000, 999999);
-		System.out.println("Otp Generated - "+otp);
+		int otp = generateOtp();
 		portalUser.setOtp(otp);
 		portalUser.setPassword(AES.encrypt(portalUser.getPassword(), "123"));
 		portalUser.setConfirm_password(AES.encrypt(portalUser.getConfirm_password(), "123"));
@@ -62,12 +62,18 @@ public class PortalUserService {
 		System.out.println("Data is Saved in db");
 		emailHelper.sendOtp(portalUser);
 		System.out.println("Otp is Sent to Email "+portalUser.getEmail());
-		map.put("msg", "Otp Sent Success");
-		map.put("id", portalUser.getId());
+		session.setAttribute("success", "otp sent success");
+		session.setAttribute("id", portalUser.getId());
 		System.out.println("Control- enter-otp.html");
 		return "enter-otp.html";
 	}
 }
+
+	private int generateOtp() {
+		int otp = new Random().nextInt(100000, 999999);
+		System.out.println("Otp Generated - "+otp);
+		return otp;
+	}
 
 public String submitOtp(int otp, int id, ModelMap map) {
 	PortalUser portalUser = userDao.findUserById(id);
@@ -138,6 +144,8 @@ public String login(String emph, String password, ModelMap map, HttpSession sess
 		}	
 		}
 }
+
+
 
 
 }

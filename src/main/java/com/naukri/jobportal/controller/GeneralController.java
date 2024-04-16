@@ -43,9 +43,9 @@ public class GeneralController {
 	}
 
 	@PostMapping("/signup")
-	public String signup(@Valid PortalUser portalUser, BindingResult result, ModelMap map) {
+	public String signup(@Valid PortalUser portalUser, BindingResult result,HttpSession session) {
 		System.out.println("Control- /signup - Post , Recieved Post Request");
-		return userService.signup(portalUser, result, map);
+		return userService.signup(portalUser, result, session);
 	}
 
 	@PostMapping("/submit-otp")

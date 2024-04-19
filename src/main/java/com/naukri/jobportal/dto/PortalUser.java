@@ -53,7 +53,6 @@ public class PortalUser {
 
 	@OneToOne(cascade = CascadeType.ALL)
 	private ApplicantDetails applicantDetails;
-
 	
 	
 

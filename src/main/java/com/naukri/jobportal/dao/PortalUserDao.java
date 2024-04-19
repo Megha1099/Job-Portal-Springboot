@@ -1,10 +1,12 @@
 package com.naukri.jobportal.dao;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import java.util.List;
 import org.springframework.stereotype.Repository;
 
 import com.naukri.jobportal.dto.PortalUser;
 import com.naukri.jobportal.repository.PortalUserRepository;
+
 
 @Repository
 public class PortalUserDao {
@@ -24,21 +26,26 @@ public class PortalUserDao {
 	}
 
 	public void deleteIfExists(String email) {
-			
+		PortalUser user = userRepository.findByEmail(email);
+		if (user != null)
+			userRepository.delete(user);
 	}
 
 	public PortalUser findUserByMobile(long mobile) {
-		
 		return userRepository.findByMobile(mobile);
 	}
 
-	public PortalUser findUserByemail(String email) {
-		
+	public PortalUser findUserByEmail(String email) {
 		return userRepository.findByEmail(email);
 	}
 
 	public boolean existsByMobile(long mobile) {
-		return userRepository.existsByMobile(mobile);
+		return userRepository.existsByMobileAndVerifiedTrue(mobile);
 	}
+
+	public List<PortalUser> fetchRecruiters() {
+		return userRepository.findByRecruiterDetailsNotNull();
+	}
+
 
 }

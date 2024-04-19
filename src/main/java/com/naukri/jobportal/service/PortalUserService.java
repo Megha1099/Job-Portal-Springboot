@@ -1,6 +1,7 @@
 package com.naukri.jobportal.service;
 
 import java.time.LocalDate;
+import java.util.HashMap;
 import java.util.Random;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,127 +26,115 @@ public class PortalUserService {
 	EmailSendingHelper emailHelper;
 
 	public String signup(PortalUser portalUser, BindingResult result, HttpSession session) {
-	if(portalUser.getDob()==null) {
-		result.rejectValue("dob", "error.dob", "* Select a Date");
-		System.out.println("Error - Age is Not Selected");
-	}else
-	if (LocalDate.now().getYear() - portalUser.getDob().getYear() < 18) {
-		result.rejectValue("dob", "error.dob", "* Age should be Greater Than 18");
-		System.out.println("Error - Age is Not Greater Than 18");
+		extraValidation(portalUser, result);
+		if (result.hasErrors()) {
+			return "signup.html";
+		} else {
+			userDao.deleteIfExists(portalUser.getEmail());
+			portalUser.setOtp(generateOtp());
+			portalUser.setPassword(encrypt(portalUser.getPassword()));
+			portalUser.setConfirm_password(encrypt(portalUser.getConfirm_password()));
+			userDao.saveUser(portalUser);
+			System.out.println("Data is Saved in Database");
+			emailHelper.sendOtp(portalUser);
+			session.setAttribute("success", "Otp Sent Success");
+			session.setAttribute("id", portalUser.getId());
+			return "redirect:/enter-otp";
+		}
 	}
-	if (!portalUser.getPassword().equals(portalUser.getConfirm_password())) {
-		result.rejectValue("confirm_password", "error.confirm_password",
-				"* Password and Confirm Password Should be Matching");
-		System.out.println("Error - Password is Not Matching");
-	}
-	if (userDao.existsByEmail(portalUser.getEmail())) {
-		result.rejectValue("email", "error.email", "* Email Should be unique");
-		System.out.println("Error - Email is Repeated");
-	}
-	if(userDao.existsByMobile(portalUser.getMobile()))
-	{
-		result.rejectValue("mobile", "error.mobile","* mobile number should be unique");
-		System.out.println("Error - mobile number is Repeated");
-	}
-	if (result.hasErrors()) {
-		System.out.println("Error - There is Some Error");
-		return "signup.html";
-	}
-	else {
-		System.out.println("No Errors");
-		userDao.deleteIfExists(portalUser.getEmail());
-		int otp = generateOtp();
-		portalUser.setOtp(otp);
-		portalUser.setPassword(AES.encrypt(portalUser.getPassword(), "123"));
-		portalUser.setConfirm_password(AES.encrypt(portalUser.getConfirm_password(), "123"));
-		userDao.saveUser(portalUser);
-		System.out.println("Data is Saved in db");
-		emailHelper.sendOtp(portalUser);
-		System.out.println("Otp is Sent to Email "+portalUser.getEmail());
-		session.setAttribute("success", "otp sent success");
-		session.setAttribute("id", portalUser.getId());
-		System.out.println("Control- enter-otp.html");
-		return "enter-otp.html";
-	}
-}
 
-	private int generateOtp() {
+	public String submitOtp(int otp, int id, HttpSession session) {
+		PortalUser portalUser = userDao.findUserById(id);
+		if (otp == portalUser.getOtp()) {
+			portalUser.setVerified(true);
+			userDao.saveUser(portalUser);
+			session.setAttribute("success", "Account Created Success");
+			session.removeAttribute("failure");
+			return "redirect:/login";
+		} else {
+			session.removeAttribute("success");
+			session.setAttribute("failure", "Invalid OTP");
+			return "redirect:/enter-otp";
+		}
+	}
+
+	public String resendOtp(int id, HttpSession session) {
+		PortalUser portalUser = userDao.findUserById(id);
+		portalUser.setOtp(generateOtp());
+		userDao.saveUser(portalUser);
+		System.out.println("Data is Updated in database");
+		emailHelper.sendOtp(portalUser);
+		session.setAttribute("success", "Otp Sent Again, Check");
+		return "redirect:/enter-otp";
+	}
+
+	public String login(String emph, String password, ModelMap map, HttpSession session) {
+		PortalUser portalUser = null;
+		try {
+			long mobile = Long.parseLong(emph);
+			portalUser = userDao.findUserByMobile(mobile);
+		} catch (NumberFormatException e) {
+			String email = emph;
+			portalUser = userDao.findUserByEmail(email);
+		}
+		if (portalUser == null) {
+			session.setAttribute("failure", "Invalid Email or Phone Number");
+			return "redirect:/login";
+		} else {
+			if (password.equals(decrypt(portalUser.getPassword()))) {
+				if (portalUser.isVerified()) {
+					session.setAttribute("success", "Login Success");
+					session.setAttribute("portalUser", portalUser);
+					if (portalUser.getRole().equals("applicant")) {
+						return "redirect:/";
+					} else if(portalUser.getRole().equals("recruiter")) {
+						return "redirect:/";
+					}else {
+						return "redirect:/";
+					}
+				} else {
+					session.setAttribute("failure", "First Verify Your Email");
+					return "redirect:/login";
+				}
+			} else {
+				session.setAttribute("failure", "Invalid Password");
+				return "redirect:/login";
+			}
+		}
+
+	}
+
+	public String encrypt(String password) {
+		return AES.encrypt(password, "123");
+	}
+
+	public String decrypt(String password) {
+		return AES.decrypt(password, "123");
+	}
+
+	public int generateOtp() {
 		int otp = new Random().nextInt(100000, 999999);
-		System.out.println("Otp Generated - "+otp);
+		System.out.println("Otp Generated - " + otp);
 		return otp;
 	}
 
-public String submitOtp(int otp, int id, ModelMap map) {
-	PortalUser portalUser = userDao.findUserById(id);
-	if (otp == portalUser.getOtp()) {
-		System.out.println("Success- OTP Matched");
-		portalUser.setVerified(true);
-		userDao.saveUser(portalUser);
-		map.put("msg", "Account Created Success");
-		return "login.html";
-	} else {
-		System.out.println("Failure- OTP MissMatch");
-		map.put("msg", "Incorrect Otp! Try Again");
-		map.put("id", portalUser.getId());
-		return "enter-otp.html";
-	}
-}
-
-public String resendOtp(int id, ModelMap map) {
-	PortalUser portalUser=userDao.findUserById(id);
-	userDao.deleteIfExists(portalUser.getEmail());
-	int otp = new Random().nextInt(100000, 999999);
-	System.out.println("Otp ReGenerated - "+otp);
-	portalUser.setOtp(otp);
-	userDao.saveUser(portalUser);
-	System.out.println("Data is Saved in db");
-	emailHelper.sendOtp(portalUser);
-	System.out.println("Otp is Sent to Email "+portalUser.getEmail());
-	map.put("msg", "Otp Sent again check");
-	map.put("id", portalUser.getId());
-	System.out.println("Control- enter-otp.html");
-	return "enter-otp.html";
-}
-
-public String login(String emph, String password, ModelMap map, HttpSession session) {
-	PortalUser portalUser=null;
-	try {
-		long mobile=Long.parseLong(emph);
-	  portalUser=userDao.findUserByMobile(mobile);
-	}
-	catch(NumberFormatException e){
-		String email=emph;
-		 portalUser=userDao.findUserByemail(email);
-		
-	}
-	if(portalUser==null)
-	{
-		map.put("msg", "Invalid email or phone number");
-		return "login.html";
-
-	}
-	else {
-		if (password.equals(AES.decrypt(portalUser.getPassword(), "123"))) {
-			if (portalUser.isVerified()) {
-				map.put("msg", "Login Success");
-				session.setAttribute("portalUser", portalUser);
-				if (portalUser.getRole().equals("applicant")) {
-					return "applicant-home.html";
-				} else {
-					return "recruiter-home.html";
-				}
-			} else {
-				map.put("msg", "First Verify Your Email");
-				return "login.html";
-			}
-		} else {
-			map.put("msg", "Invalid Password");
-			return "login.html";
-		}	
+	public void extraValidation(PortalUser portalUser, BindingResult result) {
+		if (portalUser.getDob() == null) {
+			result.rejectValue("dob", "error.dob", "* Select a Date");
+		} else if (LocalDate.now().getYear() - portalUser.getDob().getYear() < 18) {
+			result.rejectValue("dob", "error.dob", "* Age should be Greater Than 18");
 		}
-}
-
-
+		if (!portalUser.getPassword().equals(portalUser.getConfirm_password())) {
+			result.rejectValue("confirm_password", "error.confirm_password",
+					"* Password and Confirm Password Should be Matching");
+		}
+		if (userDao.existsByEmail(portalUser.getEmail())) {
+			result.rejectValue("email", "error.email", "* Account Already Exists");
+		}
+		if (userDao.existsByMobile(portalUser.getMobile())) {
+			result.rejectValue("mobile", "error.mobile", "* Account Already Exists");
+		}
+	}
 
 
 }

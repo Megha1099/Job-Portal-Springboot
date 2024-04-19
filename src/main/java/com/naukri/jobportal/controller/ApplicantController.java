@@ -27,9 +27,11 @@ public class ApplicantController {
 	public String completeProfile() {
 		return "applicant-profile.html";
 	}
+
 	@PostMapping("/complete-profile")
-	public String completeProfile(ApplicantDetails details,@RequestParam MultipartFile resume,HttpSession session,ModelMap map) {
-		return applicantService.completeProfile(details,resume,session,map);
+	public String completeProfile(ApplicantDetails details, @RequestParam MultipartFile resume, HttpSession session,
+			ModelMap map) {
+		return applicantService.completeProfile(details, resume, session, map);
 	}
 	
 }
